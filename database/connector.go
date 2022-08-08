@@ -17,9 +17,4 @@ func InitDB() {
 	}
 
 	DBConn = db
-	// 	sqlDB, err := DBConn.DB()
-	// 	if err != nil {
-	// 		fmt.Println(err)
-	// 	}
-	// 	defer sqlDB.Close()
 }

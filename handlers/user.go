@@ -1,17 +1,13 @@
 package handlers
 
 import (
-	"crypto/md5"
-	"encoding/hex"
-	"fiber-gorm/database"
 	"fiber-gorm/middleware"
 	"fiber-gorm/models"
-	"fmt"
+	"fiber-gorm/repo"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v4"
-	"gorm.io/gorm"
 )
 
 func Login(ctx *fiber.Ctx) error {
@@ -20,26 +16,19 @@ func Login(ctx *fiber.Ctx) error {
 		return err
 	}
 
-	var model models.User
-	hash := md5.Sum([]byte(loginReq.Password))
-	encode := hex.EncodeToString(hash[:])
-	err := database.DBConn.
-		Where("user_name = ?", loginReq.UserName).
-		Where("password = ?", encode).
-		First(&model).Error
-
+	data, err := repo.Login(loginReq)
 	if err != nil {
 		return ctx.Status(fiber.StatusOK).JSON(fiber.Map{
 			"message": err.Error(),
 		})
 	}
 
-	if model.ID != 0 {
+	if data.ID != 0 {
 		// generate jwt
 		claims := jwt.MapClaims{}
-		claims["id"] = model.ID
-		claims["name"] = model.Name
-		claims["user_name"] = model.UserName
+		claims["id"] = data.ID
+		claims["name"] = data.Name
+		claims["user_name"] = data.UserName
 		claims["exp"] = time.Now().Add(time.Hour * 12).Unix()
 
 		generateToken, err := middleware.GenerateToken(&claims)
@@ -60,11 +49,24 @@ func Login(ctx *fiber.Ctx) error {
 }
 
 func GetAllUsers(ctx *fiber.Ctx) error {
-	var model []*models.User
-	err := database.DBConn.Find(&model).Error
-	if err == gorm.ErrRecordNotFound {
-		fmt.Println(err)
+	pagination := new(models.Pagination)
+	if err := ctx.QueryParser(pagination); err != nil {
+		return err
 	}
 
-	return ctx.JSON(model)
+	if pagination.Page == 0 {
+		pagination.Page = models.DefaultPage
+	}
+	if pagination.Limit == 0 {
+		pagination.Limit = models.DefaultLimit
+	}
+
+	data, err := repo.GetAllUsers(pagination)
+	if err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"message": "user not found",
+		})
+	}
+
+	return ctx.JSON(data)
 }

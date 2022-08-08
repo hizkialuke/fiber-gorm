@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/gofiber/fiber/v2"
@@ -50,7 +51,28 @@ func jwtError(ctx *fiber.Ctx, err error) error {
 		})
 	} else {
 		return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-			"message": "Something gone wrong",
+			"message": "Token invalid",
 		})
+	}
+}
+
+type LogedUser struct {
+	ID       int64  `json:"id"`
+	Name     string `json:"name"`
+	UserName string `json:"user_name"`
+	Exp      int64  `json:"exp"`
+}
+
+func GetLogedUser(ctx context.Context) *LogedUser {
+	user := ctx.Value("user").(*jwt.Token)
+	claims := user.Claims.(jwt.MapClaims)
+
+	userID := int64(claims["id"].(float64))
+	exp := int64(claims["exp"].(float64))
+	return &LogedUser{
+		ID:       userID,
+		Name:     claims["name"].(string),
+		UserName: claims["user_name"].(string),
+		Exp:      exp,
 	}
 }

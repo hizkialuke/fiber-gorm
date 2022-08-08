@@ -10,6 +10,8 @@ func InitRoute(r *fiber.App) {
 		return c.SendString("Hello World!")
 	})
 
-	r.Post("/login", Login)
-	r.Get("/users", middleware.JwtRequired(), GetAllUsers)
+	r.Post("/api/login", Login)
+	r.Get("/api/users", middleware.JwtRequired(), GetAllUsers)
+	r.Get("/api/report-a", middleware.JwtRequired(), GetReportA)
+	r.Get("/api/report-b", middleware.JwtRequired(), GetReportB)
 }
